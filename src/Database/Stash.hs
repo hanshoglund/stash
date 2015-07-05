@@ -1,6 +1,17 @@
 
 {-# LANGUAGE ConstraintKinds, TupleSections, BangPatterns #-}
 
+{-|
+
+
+@
+  /.stash/
+      81273888827172/   -- A Hash of meta
+        data.json       -- JSON value
+        type.json       -- JSON string which is the TypeRep
+        meta.json       -- JSON string which is the TypeRep
+@
+-}
 module Database.Stash (
     Stashable(..),
     Meta,
@@ -99,7 +110,7 @@ findType' p = do
   stashSubDirectories <- fmap (filter ((> 11) . length)) $ -- get rid of . .. .DS_Store etc
     System.Directory.getDirectoryContents stashPath
 
-  -- TODO warn on type error
+  -- TODO warn on type error (as opposed to decode error/key not present etc)
   fmap catMaybes $ forM stashSubDirectories $ \subDirectoryName -> do
     let dirPath = stashPath ++ "/" ++ subDirectoryName
     !_meta <- SByteString.readFile (dirPath++"/"++"meta.json")
@@ -107,100 +118,19 @@ findType' p = do
 
     let k = (dec _meta :: Data.Aeson.Value)
     let ok  = p $ (dec _meta :: Data.Aeson.Value)
-    -- TODO
     let ty  = getS (dec _type)
     let res = (if ok then Just (k, ty) else Nothing)
     return res
 
--- TODO hide
+getS :: Meta -> String
 getS (Data.Aeson.String x) = Data.Text.unpack x
-    -- print $ _meta
-    -- print $ _data
-    -- print $ ok
-    -- print $ da
-    -- print $ res
-    -- putStrLn ""
-    -- putStrLn ""
-
 
 dec :: SByteString.ByteString -> Data.Aeson.Value
--- dec = fromJust . Data.Aeson.decode
 dec = fromEither . Data.Attoparsec.ByteString.parseOnly Data.Aeson.Parser.value
 
 fromEither (Right x) = x
-
--- wrapKey :: Meta -> Meta
--- wrapKey = Data.Aeson.Array . return
---
--- unwrapKey = Data.Vector.head . getArray
---   where
---     getArray (Data.Aeson.Array x) = x
-
--- /.stash/
---   /items/
---     1a238a9aa289a898/ -- hash of meta
---       data.json -- JSON value
---       type.json -- JSON string which is the TypeRep
---       meta.json -- JSON string which is the TypeRep
---
-
--- js :: String -> Data.Aeson.Value
--- js = fromJust . Data.Aeson.decode . Data.String.fromString
--- 
--- put' k = put (js k)
--- get' k = get (js k)
 fromJust (Just x) = x
--- fromRes (Data.Aeson.Success x) = x
 
+-- TODO configuration file determines this (or find out HOME dir somehow)
 stashPath = "/Users/hans/.stash"
 
--- ---------
--- -- in stash dir, add all, git commit, git pull, git push
--- sync :: IO ()
---
---
---
--- ///////
---
---
--- type Conf = () -- TODO
--- type Stash a = ReaderT Conf STA a
---
--- class (ToJSON a, FromJSON a, Typeable a) => Stashable a where
---   makePreview :: a -> FilePath -> IO Bool
---
--- -- A 128-bit sum or something
--- type Index -- Eq, Ord
---
--- -- Put something in stash, generating a unique index
--- stash :: Stashable a => a -> Stash Index
--- -- Get and remove something from stash
--- unstash :: Stashable a => Index -> Stash a
--- -- Get and put back something to stash
--- peekStash :: Stashable a => Index -> Stash a
---
--- -- View all currently stashed items
--- items :: Stash [(Index, TypeRep)]
--- -- Write a png file containing a thumbnail of the given stashed item to the given path.
--- -- Return whether successful
--- preview :: Index -> FilePath -> Stash Bool
---
---
--- type Name = String
--- collectIndices :: Name -> [Index] -> Stash ()
--- uncollectIndices :: Name -> Stash [Index]
--- peekCollectIndices :: Name -> Stash [Index]
--- -- Combination with stash
--- collect :: Stashable a => Name -> [a] -> Stash ()
--- uncollect :: Stashable a => Name -> Stash [a]
--- peekCollect :: Stashable a => Name -> Stash [a]
---
--- -- Same thing, using single-value collections
--- name :: Stashable a => Name -> a -> Stash a
--- unname :: Stashable a => Name -> Stash [Index]
--- peekName :: Stashable a => Name -> Stash a
---
--- -- TODO various configurations: zip files, gitetc
--- backupStash :: Stash ()
---
---
