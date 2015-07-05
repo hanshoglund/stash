@@ -41,20 +41,10 @@ import qualified Data.Vector
 import qualified System.Directory
 import qualified Data.Attoparsec.ByteString
 import qualified Data.Text 
+
+
+
 type Stashable a = (ToJSON a, FromJSON a, Typeable a, Show a)
--- class (ToJSON a, FromJSON a, Typeable a            , Show a) => Stashable a where
-
--- instance Stashable () -- TODO
--- instance Stashable Int -- TODO
--- instance Stashable Double -- TODO
--- instance Stashable Char -- TODO
--- instance Stashable a => Stashable [a] -- TODO
--- instance (Stashable a, Stashable b) => Stashable (a, b) -- TODO
-
-{-
-TODO Only works if key and value are arrays and objects (in their JSON representation!)
--}
-
 
 type Key = Data.Aeson.Value
 emptyKey = Data.Aeson.Null
