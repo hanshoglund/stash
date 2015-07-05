@@ -14,7 +14,7 @@
 -}
 module Database.Stash (
     Stashable(..),
-    Meta,
+    Key,
     put,
     get,
     find,
@@ -56,10 +56,10 @@ TODO Only works if key and value are arrays and objects (in their JSON represent
 -}
 
 
-type Meta = Data.Aeson.Value
-emptyMeta = Data.Aeson.Null
+type Key = Data.Aeson.Value
+emptyKey = Data.Aeson.Null
 
-put     :: Stashable a => Meta -> a -> IO ()
+put     :: Stashable a => Key -> a -> IO ()
 put k v = do
   let meta_ = Data.Aeson.encode $ k -- need to wrap to match JSON spec!
   let type_ = Data.Aeson.encode $ Data.Aeson.String $ Data.String.fromString $ show $ Data.Typeable.typeOf v -- Just for sanity at the moment
@@ -73,14 +73,14 @@ put k v = do
   ByteString.writeFile (dirPath++"/"++"data.json") data_
   return ()
 
-get     :: Stashable a => Meta -> IO (Maybe a)
+get     :: Stashable a => Key -> IO (Maybe a)
 get k = fmap (listToMaybe) $ find (== k)
 
 
-find    :: Stashable a => (Meta -> Bool) -> IO [a]
+find    :: Stashable a => (Key -> Bool) -> IO [a]
 find = fmap (fmap (\(_,_,x)->x)) . find'
 
-find'    :: Stashable a => (Meta -> Bool) -> IO [(Meta,String,a)]
+find'    :: Stashable a => (Key -> Bool) -> IO [(Key,String,a)]
 find' p = do
   stashSubDirectories <- fmap (filter ((> 11) . length)) $ -- get rid of . .. .DS_Store etc
     System.Directory.getDirectoryContents stashPath
@@ -99,13 +99,13 @@ find' p = do
     let res = (join $ if ok then Just (fmap (k,ty,) da) else Nothing)
     return res
 
-getType :: Meta -> IO (Maybe String)
+getType :: Key -> IO (Maybe String)
 getType k = fmap (listToMaybe) $ findType (== k)
 
-findType :: (Meta -> Bool) -> IO [String]
+findType :: (Key -> Bool) -> IO [String]
 findType = fmap (fmap snd) . findType'
 
-findType' :: (Meta -> Bool) -> IO [(Meta,String)]
+findType' :: (Key -> Bool) -> IO [(Key,String)]
 findType' p = do
   stashSubDirectories <- fmap (filter ((> 11) . length)) $ -- get rid of . .. .DS_Store etc
     System.Directory.getDirectoryContents stashPath
@@ -122,7 +122,7 @@ findType' p = do
     let res = (if ok then Just (k, ty) else Nothing)
     return res
 
-getS :: Meta -> String
+getS :: Key -> String
 getS (Data.Aeson.String x) = Data.Text.unpack x
 
 dec :: SByteString.ByteString -> Data.Aeson.Value
