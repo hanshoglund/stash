@@ -1,5 +1,5 @@
 
-{-# LANGUAGE ConstraintKinds, TupleSections #-}
+{-# LANGUAGE ConstraintKinds, TupleSections, BangPatterns #-}
 
 module Database.Stash (
     Stashable(..),
@@ -77,13 +77,13 @@ find' p = do
   -- TODO warn on type error
   fmap catMaybes $ forM stashSubDirectories $ \subDirectoryName -> do
     let dirPath = stashPath ++ "/" ++ subDirectoryName
-    _meta <- SByteString.readFile (dirPath++"/"++"meta.json")
-    _type <- SByteString.readFile (dirPath++"/"++"type.json")
-    _data <- ByteString.readFile (dirPath++"/"++"data.json")
+    !_meta <- SByteString.readFile (dirPath++"/"++"meta.json")
+    !_type <- SByteString.readFile (dirPath++"/"++"type.json")
+    _data <- SByteString.readFile (dirPath++"/"++"data.json")
 
     let k = (dec _meta :: Data.Aeson.Value)
     let ok  = p k
-    let da  = (Data.Aeson.decode $ _data)
+    let da  = (Data.Aeson.decodeStrict $ _data)
     let ty  = getS (dec _type)
     let res = (join $ if ok then Just (fmap (k,ty,) da) else Nothing)
     return res
@@ -102,9 +102,8 @@ findType' p = do
   -- TODO warn on type error
   fmap catMaybes $ forM stashSubDirectories $ \subDirectoryName -> do
     let dirPath = stashPath ++ "/" ++ subDirectoryName
-    _meta <- SByteString.readFile (dirPath++"/"++"meta.json")
-    _type <- SByteString.readFile (dirPath++"/"++"type.json")
-    _data <- ByteString.readFile (dirPath++"/"++"data.json")
+    !_meta <- SByteString.readFile (dirPath++"/"++"meta.json")
+    !_type <- SByteString.readFile (dirPath++"/"++"type.json")
 
     let k = (dec _meta :: Data.Aeson.Value)
     let ok  = p $ (dec _meta :: Data.Aeson.Value)
